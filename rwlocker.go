@@ -30,10 +30,12 @@ func (l *RWLocker) RLock() {
 // Read unlock
 func (l *RWLocker) RUnlock() {
 	l.c.L.Lock()
-	l.numReaders -= 1
-	// if this is the last reader, enable writer
-	if l.numReaders == 0 {
-		l.c.Broadcast()
+	if l.numReaders >= 1 {
+		l.numReaders -= 1
+		// if this is the last reader, enable writer
+		if l.numReaders == 0 {
+			l.c.Broadcast()
+		}
 	}
 	l.c.L.Unlock()
 }
@@ -59,7 +61,9 @@ func (l *RWLocker) Lock() {
 // Write unlock
 func (l *RWLocker) Unlock() {
 	l.c.L.Lock()
-	l.hasWriter = false
-	l.c.Broadcast()
+	if l.hasWriter {
+		l.hasWriter = false
+		l.c.Broadcast()
+	}
 	l.c.L.Unlock()
 }
