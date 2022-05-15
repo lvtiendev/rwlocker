@@ -3,9 +3,9 @@ package rwlocker
 import "sync"
 
 type RWLocker struct {
-	numReaders int  // number of readers holding lock
-	hasWriter  bool // if a writer requested lock
-	c          *sync.Cond
+	numReaders int        // number of readers holding lock
+	hasWriter  bool       // if a writer requested lock
+	c          *sync.Cond // conditional synchronization
 }
 
 func NewRWLocker() *RWLocker {
@@ -20,7 +20,7 @@ func NewRWLocker() *RWLocker {
 func (l *RWLocker) RLock() {
 	l.c.L.Lock()
 	// this check helps to prevent writer starvation
-	if l.hasWriter {
+	for l.hasWriter {
 		l.c.Wait()
 	}
 	l.numReaders += 1
@@ -45,13 +45,13 @@ func (l *RWLocker) Lock() {
 	l.c.L.Lock()
 
 	// wait for writer
-	if l.hasWriter {
+	for l.hasWriter {
 		l.c.Wait()
 	}
 	l.hasWriter = true
 
 	// wait for readers
-	if l.numReaders != 0 {
+	for l.numReaders != 0 {
 		l.c.Wait()
 	}
 
